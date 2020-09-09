@@ -44,6 +44,8 @@ class cnf_parser(): # takes the ISCAS 89 file as input and finds all input outpu
 
             self.CNF_formula.append(CNF)
 
+        self.variable_dict = {v: k for k, v in self.variable_dict.iteritems()}
+
         return self.CNF_formula, self.variable_dict
 
 
