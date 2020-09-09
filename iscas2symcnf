@@ -199,10 +199,13 @@ def main():
 
     CNF_conversion(OUTPUT_FILE , gate_dict).gate_dict_to_cnf()
 
+    return 0
+
 if __name__ == '__main__':
     import re # used for parsing
     import sys # used for everything
     main()
+    quit()
 
 
 """
