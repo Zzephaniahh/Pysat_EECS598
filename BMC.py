@@ -1,7 +1,7 @@
 #!/usr/bin/python -i
 # Zephaniah Hill | Univeristy of Michigan, Ann Arbor
 # July 23, 2020
-######################################################################################3333
+######################################################################################
 # Usage: call this file on a .isc benchmark with: python BMC.py input_file.isc outputfile.isc unrolling_depth
 # where unrolling_depth is an integer > 0. The circuit is considered the 0th step.
 
@@ -33,11 +33,11 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
         # Y = DFF(Y_next)
         next_state = str(re.search('\((.+?)\)', line).group(1))
         current_state = str(re.search('(.+?) =', line).group(1))
-        self.DFF_set.append(DFF(current_state, next_state))
+        self.DFF_set.append(DFF(current_state.strip(), next_state.strip()))
         #self.DFF_dict[current_state] = next_state
 
     def get_circuit_output(self, line):
-        self.output_set.append(str(re.search('\((.+?)\)', line).group(1))) # add each output to the output set.
+        self.output_set.append(str(re.search('\((.+?)\)', line).group(1))).strip() # add each output to the output set.
 
     def get_circuit_input(self, line):
         self.input_set.append(str(re.search('\((.+?)\)', line).group(1))) # add each output to the output set.
@@ -47,16 +47,21 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
 
 
     def get_gate_type(self,line):
-            return str(re.search('= (.+?)\(', line).group(1)) # find each gate bounded by "= ... ("
+            return str(re.search('= (.+?)\(', line).group(1)).strip() # find each gate bounded by "= ... ("
 
     def get_input_set(self, line):
         found = re.search('\((.+?)\)', line).group(1) # find each input set inside brackets (x1 ... xn)
-        return str(found).split(", ") # split into a list of inputs [x1, ... xn]
+        input_set = str(found).split(",") # split into a list of inputs [x1, ... xn]
+        for i, input in enumerate(input_set):
+            input_set[i] = input.strip()
+        return input_set
 
     def parse(self):
         file_id = open(self.filename, "r")
         lines = file_id.readlines()
         for line in lines:
+            if line[0]  == "#":
+                continue
             if "DFF" in line:
                 self.get_dff(line)
                 continue
@@ -144,21 +149,21 @@ class BMC():
         self.file_ID.write( "\n##############################################################\n") # space between iterations
 
         for DFF in self.DFF_set:
-            self.file_ID.write(DFF.current + " = DFF(")
-            self.file_ID.write(DFF.next + ")\n")
+            self.file_ID.write(DFF.current.strip() + " = DFF(")
+            self.file_ID.write(DFF.next.strip() + ")\n")
 
     def print_gate_set_to_file(self):
         self.file_ID.write( "\n") # space between iterations
 
         #self.file_ID = open(self.filename, "a")
         for gate in self.gate_set:
-            self.file_ID.write(gate.output + " = ")
-            self.file_ID.write(gate.type)
+            self.file_ID.write(gate.output.strip() + " = ")
+            self.file_ID.write(gate.type.strip())
             input_str = "("
             for input in gate.input_set:
-                input_str += str(input) + ", "
+                input_str += str(input.strip()) + ", "
             input_str = input_str[:len(input_str) - 2] + ")\n"
-            self.file_ID.write(input_str)
+            self.file_ID.write(input_str.strip() + "\n")
 
     def step_forward(self):
 
