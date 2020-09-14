@@ -14,20 +14,33 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
             self.input_set.append(str(re.search('\((.+?)\)', line).group(1))) # add each output to the output set.
 
     def get_output(self, line):
-        return str(re.search('(.+?) =', line).group(1)) # save outputs as strings to a variable
+        return str(re.search('(.+?) =', line).group(1)).strip() # save outputs as strings to a variable
 
 
     def get_gate_type(self,line):
-            return str(re.search('= (.+?)\(', line).group(1)) # find each gate bounded by "= ... ("
+            try: # find each gate bounded by "= ... ("
+                return str(re.search('= (.+?)\(', line).group(1)).strip()  # find each gate bounded by "= ... ("
+            except:
+                return None
 
     def get_input_set(self, line):
-        found = re.search('\((.+?)\)', line).group(1) # find each input set inside brackets (x1 ... xn)
-        return str(found).split(", ") # split into a list of inputs [x1, ... xn]
+        if self.get_gate_type(line) == None:
+            found = str(re.search('= (.*)', line).group(1)).strip()
+            return [found] # Really hate this, but works for now. Standardizes inputs to set types
+        else:
+            found = re.search('\((.+?)\)', line).group(1) # find each input set inside brackets (x1 ... xn)
+            input_set = str(found).split(",") # split into a list of inputs [x1, ... xn]
+            for i, input in enumerate(input_set):
+                input_set[i] = input.strip()
+            return input_set
 
     def parse(self):
         file_id = open(self.filename, "r")
         lines = file_id.readlines()
         for line in lines:
+            if "#" in line: # handle comments
+                line = line[:line.index("#")]
+
             if "OUTPUT" in line:
                 self.get_circuit_output(line)
 
@@ -35,6 +48,7 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
                 output = self.get_output(line)
 
                 gate_type = self.get_gate_type(line)
+
 
                 input_set = self.get_input_set(line)
 
@@ -137,6 +151,7 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
             self.file_ID.write("(" + input + " + " + self.output + ")\n")
 
 
+
     def negate(self, variable):
         if "!" in variable:
             variable = variable[1:]
@@ -151,6 +166,17 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
             if input in self.not_gate_dict:
                 input = self.not_gate_dict[input]
             self.file_ID.write( self.output+ " = DFF(" + input + ")" + "\n")
+
+    def EQ(self):
+        self.file_ID = open(self.file_name, "a")
+        self.file_ID.write( "# "+ self.output + " = " +  str(self.input_set) + "\n") # set comments
+
+        for input in self.input_set:
+            # DIMACS string representing (~f + a)
+            self.file_ID.write("(" + input + " + " + self.negate(self.output) + ")\n")
+            # DIMACS string representing (f + ~a)
+            self.file_ID.write("(" + self.negate(input) + " + " + self.output + ")\n")
+
 
 
     def get_cnf_from_gate(self):
@@ -168,6 +194,8 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
             self.NOT()
         elif self.gate_type == "DFF":
             self.DFF()
+        elif self.gate_type == None:
+            self.EQ()
 
         else:
             print("This gate type is unsupported: " + self.gate_type)

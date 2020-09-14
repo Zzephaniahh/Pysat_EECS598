@@ -29,12 +29,10 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
 
 
     def get_dff(self, line):
-        # X = DFF(X_next)
-        # Y = DFF(Y_next)
         next_state = str(re.search('\((.+?)\)', line).group(1))
         current_state = str(re.search('(.+?) =', line).group(1))
         self.DFF_set.append(DFF(current_state.strip(), next_state.strip()))
-        #self.DFF_dict[current_state] = next_state
+
 
     def get_circuit_output(self, line):
         self.output_set.append(str(re.search('\((.+?)\)', line).group(1)).strip()) # add each output to the output set.
@@ -42,26 +40,41 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
     def get_circuit_input(self, line):
         self.input_set.append(str(re.search('\((.+?)\)', line).group(1)).strip()) # add each output to the output set.
 
+    def get_gate_type(self,line):
+            try: # find each gate bounded by "= ... ("
+                return str(re.search('= (.+?)\(', line).group(1)) # find each gate bounded by "= ... ("
+            except:
+                return None
+
+    def get_gate_type(self,line):
+            try: # find each gate bounded by "= ... ("
+                return str(re.search('= (.+?)\(', line).group(1)).strip()  # find each gate bounded by "= ... ("
+            except:
+                return None
+
+    def get_input_set(self, line):
+        if self.get_gate_type(line) == None: # finds property or eqaulity
+            found = str(re.search('= (.*)', line).group(1)).strip()
+            return [found] # Really hate this, but works for now. Standardizes inputs to set types
+        else:
+            found = re.search('\((.+?)\)', line).group(1) # find each input set inside brackets (x1 ... xn)
+            input_set = str(found).split(",") # split into a list of inputs [x1, ... xn]
+            for i, input in enumerate(input_set):
+                input_set[i] = input.strip()
+            return input_set
+
     def get_output(self, line):
         return str(re.search('(.+?) =', line).group(1)).strip() # save outputs as strings to a variable
 
-
-    def get_gate_type(self,line):
-            return str(re.search('= (.+?)\(', line).group(1)).strip() # find each gate bounded by "= ... ("
-
-    def get_input_set(self, line):
-        found = re.search('\((.+?)\)', line).group(1) # find each input set inside brackets (x1 ... xn)
-        input_set = str(found).split(",") # split into a list of inputs [x1, ... xn]
-        for i, input in enumerate(input_set):
-            input_set[i] = input.strip()
-        return input_set
 
     def parse(self):
         file_id = open(self.filename, "r")
         lines = file_id.readlines()
         for line in lines:
-            if line[0]  == "#":
-                continue
+
+            if "#" in line: #handles comments
+                line = line[:line.index("#")]
+
             if "DFF" in line:
                 self.get_dff(line)
                 continue
@@ -96,35 +109,31 @@ class BMC():
         self.output_set = output_set
         self.input_set  = input_set
         self.DFF_set = DFF_set
-        #self.unrolling_depth = unrolling_depth
-        self.unrolling_level = 1 # start at 1
+        self.unrolling_level = 0 # start at 1
+
 
     def increment_DFF_set(self):
         for DFF in self.DFF_set:
-            DFF.current = DFF.next
             if DFF.next in self.input_set: # don't update inputs
                 continue
-            if DFF.next[len(DFF.next)-2] == "_": # increase the unrolling level
-                DFF.next = DFF.next[:len(DFF.next)-2] + "_" + str(self.unrolling_level)
+            if "_" in DFF.next:         #if DFF.next[len(DFF.next)-2] == "_": # increase the unrolling level
+                dff_name = str(re.search('(.*)_', DFF.next).group(1)).strip()
+                DFF.next = dff_name + "_" + str(self.unrolling_level)
             else:
                 DFF.next = DFF.next + "_" + str(self.unrolling_level)
-
-    def is_DFF(self, signal):
-        for DFF in self.DFF_set:
-            if signal == DFF.current:
-                return DFF.next
-        else:
-            return 0
+            if "_" in DFF.current: # increase the unrolling level
+                dff_name = str(re.search('(.*)_', DFF.current).group(1)).strip()
+                DFF.current = dff_name + "_" + str(self.unrolling_level+1)
+            else:
+                DFF.current = DFF.current + "_" + str(self.unrolling_level+1)
 
 
     def increment_gate(self, gate):
         # update output
         if gate.output not in self.input_set: # don't update inputs
-        #if gate.output
-            if self.is_DFF(gate.output):
-                gate.output = self.is_DFF(gate.output)
-            elif gate.output[len(gate.output)-2] == "_": # increase the unrolling level
-                gate.output = gate.output[:len(gate.output)-2] + "_" + str(self.unrolling_level)
+            if "_" in gate.output: # increase the unrolling level
+                output_name = str(re.search('(.*)_', gate.output).group(1)).strip()
+                gate.output = output_name  + "_" + str(self.unrolling_level)
             else:
                 gate.output = gate.output + "_" + str(self.unrolling_level)
 
@@ -132,12 +141,9 @@ class BMC():
         for index, input in enumerate(gate.input_set):
             if input in self.input_set:
                 continue  # don't update inputs
-
-            if self.is_DFF(input):
-                input = self.is_DFF(input)
-
-            elif input[len(input)-2] == "_": # increase the unrolling level
-                input = input[:len(input)-2] + "_" + str(self.unrolling_level)
+            if "_" in input: # increase the unrolling level
+                input_name = str(re.search('(.*)_', input).group(1)).strip()
+                input = input_name  + "_" + str(self.unrolling_level)
             else:
                 input = input + "_" + str(self.unrolling_level)
 
@@ -146,24 +152,33 @@ class BMC():
 
 
     def print_DFF_set_to_file(self):
-        self.file_ID.write( "\n##############################################################\n") # space between iterations
-
-        for DFF in self.DFF_set:
-            self.file_ID.write(DFF.current.strip() + " = DFF(")
-            self.file_ID.write(DFF.next.strip() + ")\n")
-
-    def print_gate_set_to_file(self):
         self.file_ID.write( "\n") # space between iterations
 
-        #self.file_ID = open(self.filename, "a")
+
+        for DFF in self.DFF_set:
+            self.file_ID.write(DFF.current.strip() + " = " + DFF.next.strip() + "\n")
+
+    def print_gate_set_to_file(self):
+        self.file_ID.write( "\n##############################################################\n") # space between iterations
+
+        self.file_ID.write( "\n") # space between iterations
+
         for gate in self.gate_set:
+
             self.file_ID.write(gate.output.strip() + " = ")
-            self.file_ID.write(gate.type.strip())
-            input_str = "("
-            for input in gate.input_set:
-                input_str += str(input.strip()) + ", "
-            input_str = input_str[:len(input_str) - 2] + ")\n"
-            self.file_ID.write(input_str.strip() + "\n")
+            if gate.type is None:
+                input_str = ""
+                for input in gate.input_set:
+                    input_str += str(input.strip()) + ", "
+                input_str = input_str[:len(input_str) - 2] + "\n"
+                self.file_ID.write(input_str.strip() + "\n")
+            else:
+                self.file_ID.write(gate.type.strip())
+                input_str = "("
+                for input in gate.input_set:
+                    input_str += str(input.strip()) + ", "
+                input_str = input_str[:len(input_str) - 2] + ")\n"
+                self.file_ID.write(input_str.strip() + "\n")
 
     def step_forward(self):
 
@@ -172,9 +187,6 @@ class BMC():
 
         self.increment_DFF_set()
         self.unrolling_level += 1
-
-
-
 
 
 def main():
@@ -200,14 +212,10 @@ def main():
     #print DFF_set
     BMC_Manager = BMC(file_ID, gate_set, output_set, input_set, DFF_set)
 
-
-    BMC_Manager.print_DFF_set_to_file()
-    BMC_Manager.print_gate_set_to_file()
-
     for unrolling_level in range(0,unrolling_depth):
         BMC_Manager.step_forward()
-        BMC_Manager.print_DFF_set_to_file()
         BMC_Manager.print_gate_set_to_file()
+        BMC_Manager.print_DFF_set_to_file()
 
     return 0
 
