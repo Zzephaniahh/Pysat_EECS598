@@ -1,0 +1,12 @@
+# Circuit netlist in \u201cISCAS89\u201d Format
+# This circuit does not have inputs!
+
+
+INIT(!X, !Y)
+G1 = NOR(X, Y)
+G2 = NAND(X, Y)
+G3 = NOT(Y)
+G4 = OR(X, G3)
+X = DFF(G1)#X+ = G1
+Y = DFF(G2)#Y+ = G2
+P = G4

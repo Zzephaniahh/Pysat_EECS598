@@ -13,6 +13,15 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
         if "INPUT" in line:
             self.input_set.append(str(re.search('\((.+?)\)', line).group(1))) # add each output to the output set.
 
+    def get_init_cond(self, line):
+        if "INIT" in line:
+            found = str(re.search('\((.*)\)', line).group(1)).strip()
+            init_conditions = str(found).split(",") # split into a list of inputs [x1, ... xn]
+            for i, input in enumerate(init_conditions):
+                init_conditions[i] = input.strip()
+            return init_conditions
+
+
     def get_output(self, line):
         return str(re.search('(.+?) =', line).group(1)).strip() # save outputs as strings to a variable
 
@@ -40,6 +49,8 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
         for line in lines:
             if "#" in line: # handle comments
                 line = line[:line.index("#")]
+            if "INIT" in line:
+                init_cond_set = self.get_init_cond(line)
 
             if "OUTPUT" in line:
                 self.get_circuit_output(line)
@@ -54,12 +65,12 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
 
                 self.gate_dict[output] = [gate_type, input_set] # save the output: {gate_Type, input_set} pair to a dict
 
-        return self.gate_dict, self.output_set
+        return self.gate_dict, init_cond_set #self.output_set
 
 
 
 class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in a solver
-    def __init__(self, CNF_filename, gate_dict):
+    def __init__(self, CNF_filename, gate_dict, init_cond_set):
         self.gate_dict = gate_dict
         self.input_set = []
         self.gate_type = ""
@@ -67,6 +78,7 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         self.output = ''
         self.file_ID = open(CNF_filename, "w")
         self.not_gate_dict = {}
+        self.init_cond_set = init_cond_set
 
     def AND(self):
         self.file_ID = open(self.file_name, "a")
@@ -160,12 +172,13 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         return variable
 
     def DFF(self):
-        self.file_ID = open(self.file_name, "a")
-
-        for input in self.input_set:
-            if input in self.not_gate_dict:
-                input = self.not_gate_dict[input]
-            self.file_ID.write( self.output+ " = DFF(" + input + ")" + "\n")
+        return 0
+        # self.file_ID = open(self.file_name, "a")
+        #
+        # for input in self.input_set:
+        #     if input in self.not_gate_dict:
+        #         input = self.not_gate_dict[input]
+        #     self.file_ID.write( self.output+ " = DFF(" + input + ")" + "\n")
 
     def EQ(self):
         self.file_ID = open(self.file_name, "a")
@@ -203,10 +216,14 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
 
     def gate_dict_to_cnf(self):
         with open(self.file_name) as self.file_ID:
+            for init_cond in self.init_cond_set:
+                # Unit clauses for each init cond
+                self.file_ID = open(self.file_name, "a")
+                self.file_ID.write("(" + init_cond + ")\n")
+
             for self.output in self.gate_dict:
                 self.gate_type = self.gate_dict[self.output][0] # Dict of the form gate_type[output] = [gate_type, input_set]
                 self.input_set = self.gate_dict[self.output][1]
-
                 self.get_cnf_from_gate()
 
 
@@ -219,13 +236,13 @@ def main():
 
 
     ###############################
-    OUTPUT_FILE = str(sys.argv[2]) # "output_test.cnf"
+    OUTPUT_FILE = str(sys.argv[2]) # "output_test.scnf"
     ###############################
 
-    gate_dict, output_set = parser(INPUT_FILE).parse()
+    gate_dict, init_cond_set = parser(INPUT_FILE).parse()
     file_ID = open(OUTPUT_FILE , "w")
 
-    CNF_conversion(OUTPUT_FILE , gate_dict).gate_dict_to_cnf()
+    CNF_conversion(OUTPUT_FILE , gate_dict, init_cond_set).gate_dict_to_cnf()
 
     return 0
 
@@ -239,5 +256,4 @@ if __name__ == '__main__':
 """
  TODO:
  Add all logic functions
- MAybe a clearer way to encode DFF?
 """

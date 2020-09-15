@@ -1,4 +1,5 @@
 import re # used for parsing
+from bidict import bidict
 class cnf_parser(): # takes the ISCAS 89 file as input and finds all input output pairs
     def __init__(self, ISCAS_filename):
         self.filename = ISCAS_filename
@@ -32,8 +33,10 @@ class cnf_parser(): # takes the ISCAS 89 file as input and finds all input outpu
         file_id = open(self.filename, "r")
         lines = file_id.readlines()
         for line in lines:
+            if "#" in line: # handle comments
+                line = line[:line.index("#")]
 
-            if "#" in line or "DFF" in line:
+            if "DFF" in line or line == "":
                 continue
 
             self.variables = self.get_variables(line)
@@ -44,8 +47,10 @@ class cnf_parser(): # takes the ISCAS 89 file as input and finds all input outpu
 
             self.CNF_formula.append(CNF)
 
-        self.variable_dict = {v: k for k, v in self.variable_dict.iteritems()}
-
+        #self.variable_dict = {v: k for k, v in self.variable_dict.iteritems()}
+        self.variable_dict = bidict(self.variable_dict)
+        # for key in self.variable_dict:
+        #     bidict.append({key: self.variable_dict[key]})
         return self.CNF_formula, self.variable_dict
 
 
