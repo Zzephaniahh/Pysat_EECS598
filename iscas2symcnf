@@ -126,7 +126,7 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
 
         formula_str = "("
         for input in self.input_set:
-            formula_str += self.negate(var_1) + " + "
+            formula_str += self.negate(input) + " + "
 
         self.file_ID.write(formula_str + self.negate(self.output) + ")\n")
 
