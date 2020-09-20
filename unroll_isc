@@ -124,8 +124,8 @@ class BMC():
 
     def increment_DFF_set(self):
         for DFF in self.DFF_set:
-            if DFF.next in self.input_set: # don't update inputs
-                continue
+            # if DFF.next in self.input_set: # don't update inputs
+            #     continue
             if "_" in DFF.next:         #if DFF.next[len(DFF.next)-2] == "_": # increase the unrolling level
                 dff_name = str(re.search('(.*)_', DFF.next).group(1)).strip()
                 DFF.next = dff_name + "_" + str(self.unrolling_level)
@@ -149,8 +149,8 @@ class BMC():
 
         # update input
         for index, input in enumerate(gate.input_set):
-            if input in self.input_set:
-                continue  # don't update inputs
+            # if input in self.input_set:
+            #     continue  # don't update inputs
             if "_" in input: # increase the unrolling level
                 input_name = str(re.search('(.*)_', input).group(1)).strip()
                 input = input_name  + "_" + str(self.unrolling_level)

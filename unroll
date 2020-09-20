@@ -5,7 +5,5 @@ OUTPUT_FILE=$3
 ./unroll_isc $INPUT_FILE ${OUTPUT_FILE}_temp.delete $UNROLLING_DEPTH
 
 ./iscas2symcnf ${OUTPUT_FILE}_temp.delete $OUTPUT_FILE
-if [ $2 -gt 0 ]
-then
-  rm *_temp.delete
-fi
+
+rm *_temp.delete
