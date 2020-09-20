@@ -44,6 +44,7 @@ class parser(): # takes the ISCAS 89 file as input and finds all input output pa
             return input_set
 
     def parse(self):
+        init_cond_set = []
         file_id = open(self.filename, "r")
         lines = file_id.readlines()
         for line in lines:
