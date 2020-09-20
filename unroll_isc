@@ -140,12 +140,12 @@ class BMC():
 
     def increment_gate(self, gate):
         # update output
-        if gate.output not in self.input_set: # don't update inputs
-            if "_" in gate.output: # increase the unrolling level
-                output_name = str(re.search('(.*)_', gate.output).group(1)).strip()
-                gate.output = output_name  + "_" + str(self.unrolling_level)
-            else:
-                gate.output = gate.output + "_" + str(self.unrolling_level)
+        #if gate.output not in self.input_set: # don't update inputs
+        if "_" in gate.output: # increase the unrolling level
+            output_name = str(re.search('(.*)_', gate.output).group(1)).strip()
+            gate.output = output_name  + "_" + str(self.unrolling_level)
+        else:
+            gate.output = gate.output + "_" + str(self.unrolling_level)
 
         # update input
         for index, input in enumerate(gate.input_set):

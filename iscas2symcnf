@@ -100,8 +100,6 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         all_variable_forumula = ""
         for input in self.input_set:
         # CNF formula representing: (~a + f) *(~b + f) ...
-            if input in self.not_gate_dict:
-                input = self.not_gate_dict[input]
             self.file_ID.write("(" + self.negate(input) + " + " + self.output + ")\n")
             # DIMACS string representing (~f + a + b ... )
             all_variable_forumula += " + " + input
@@ -112,15 +110,32 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         self.file_ID = open(self.file_name, "a")
         self.file_ID.write( "# "+ self.output + " = " + self.gate_type +  str(self.input_set) + "\n") # set comments
         all_variable_forumula = ""
+        variable_set = []
         for input in self.input_set:
-        # CNF formula representing: (~a + f) *(~b + f) ...
-            if input in self.not_gate_dict:
-                input = self.not_gate_dict[input]
+            variable_set.append(input)
+        variable_set.append(self.output)
 
-            self.file_ID.write("(" + self.negate(input) + " + " + self.output + ")\n")
-            # DIMACS string representing (~f + a + b ... )
-            all_variable_forumula += " + " + input
-        self.file_ID.write("(" + self.negate(self.output) + all_variable_forumula + ")\n")
+        for var_1 in variable_set: # this loop creates the (!f + a + b) (f + !a + b) (f + a + !b) terms
+            formula_str = "("
+            formula_str += self.negate(var_1)
+            for var_2 in variable_set:
+                if var_1 == var_2:
+                    continue
+                formula_str += " + " + var_2
+            self.file_ID.write(formula_str + ")\n")
+
+        formula_str = "("
+        for input in self.input_set:
+            formula_str += self.negate(var_1) + " + "
+
+        self.file_ID.write(formula_str + self.negate(self.output) + ")\n")
+
+            # for input_pos in self.input_set:
+            #
+            #     self.file_ID.write("(" + self.negate(input) + " + " + self.output + ")\n")
+            #     # DIMACS string representing (~f + a + b ... )
+            #     all_variable_forumula_neg += " + " + self.negate(input)
+            # self.file_ID.write("(" + self.negate(self.output) + all_variable_forumula + ")\n")
 
 
     def NAND(self):
@@ -129,8 +144,6 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         all_variable_forumula = ""
         for input in self.input_set:
         # CNF formula representing: (f + a) * (f + b) ...
-            if input in self.not_gate_dict:
-                input = self.not_gate_dict[input]
             self.file_ID.write("(" + input + " + " + self.output + ")\n")
             # DIMACS string representing (~f + ~a + ~b ... )
             all_variable_forumula += " + " + self.negate(input)
@@ -144,8 +157,6 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
         self.file_ID.write( "# "+ self.output + " = " + self.gate_type +  str(self.input_set) + "\n") # set comments
         for input in self.input_set:
         # CNF formula representing: (~a + ~f) *(~b + ~f) ...
-            if input in self.not_gate_dict:
-                input = self.not_gate_dict[input]
             self.file_ID.write("(" + self.negate(input) + " + " + self.negate(self.output) + ")\n")
             # DIMACS string representing (f + a + b ... )
             all_variable_forumula += " + " + input
