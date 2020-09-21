@@ -229,6 +229,7 @@ def main():
 
 
     if unrolling_depth == 0:
+        BMC_Manager.step_forward() #0th step
         BMC_Manager.print_init_conds_to_file()
         BMC_Manager.print_gate_set_to_file()
         BMC_Manager.print_DFF_set_to_file()
