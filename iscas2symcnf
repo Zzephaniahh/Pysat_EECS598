@@ -136,7 +136,29 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
             #     # DIMACS string representing (~f + a + b ... )
             #     all_variable_forumula_neg += " + " + self.negate(input)
             # self.file_ID.write("(" + self.negate(self.output) + all_variable_forumula + ")\n")
+    def XNOR(self):
+        self.file_ID = open(self.file_name, "a")
+        self.file_ID.write( "# "+ self.output + " = " + self.gate_type +  str(self.input_set) + "\n") # set comments
+        all_variable_forumula = ""
+        variable_set = []
+        for input in self.input_set:
+            variable_set.append(input)
+        variable_set.append(self.output)
 
+        for var_1 in variable_set: # this loop creates the (!f + !a + b) (f + !a + !b) (!f + a + !b) terms
+            formula_str = "("
+            formula_str += var_1
+            for var_2 in variable_set:
+                if var_1 == var_2:
+                    continue
+                formula_str += " + " + self.negate(var_2)
+            self.file_ID.write(formula_str + ")\n")
+
+        formula_str = "("
+        for input in self.input_set:
+            formula_str += input + " + "
+
+        self.file_ID.write(formula_str + self.output + ")\n")
 
     def NAND(self):
         self.file_ID = open(self.file_name, "a")
@@ -219,6 +241,8 @@ class CNF_conversion(): # used to generate a Symbolic CNF file. An IR for use in
             self.NOT()
         elif self.gate_type == "DFF":
             self.DFF()
+        elif self.gate_type == "XNOR":
+            self.XNOR()
         elif self.gate_type == None:
             self.EQ()
 
